@@ -10,9 +10,9 @@ export async function generateNextScene(
   userInput: string,
   history: string
 ): Promise<GameScene> {
-  // 2. 核心修正：锁定为 2.0 Flash 模型 (即你要求的最新 2.5 逻辑版)，跳过 1.5 的安全拦截
+  // 2. 核心修正：锁定为 2.5 Flash 模型 (即你要求的最新 2.5 逻辑版)，跳过 1.5 的安全拦截
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.0-flash", 
+    model: "gemini-2.5-flash", 
     systemInstruction: SYSTEM_INSTRUCTION 
   });
 
@@ -61,7 +61,7 @@ export async function generateSceneImage(prompt: string): Promise<string> {
       }],
     });
 
-    // 目前 2.0 Flash 在 Web 端主要辅助生成描述，若需直接生成图片需额外配置
+    // 目前 2.5 Flash 在 Web 端主要辅助生成描述，若需直接生成图片需额外配置
     // 这里先保证代码不报错，维持页面渲染
     return ""; 
   } catch (error) {
