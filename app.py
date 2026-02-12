@@ -1,78 +1,84 @@
 import streamlit as st
 import google.generativeai as genai
+import json
 
-# --- 1. 像素级还原 App.tsx 视觉配置 ---
-st.set_page_config(page_title="2026 约定", layout="wide")
-
+# --- 1. 视觉加固：限制按钮宽度与卡片比例 ---
 st.markdown("""
     <style>
-    /* 还原 App.tsx 中的 bg-gradient-to-b 和色彩 */
-    .stApp {
-        background: linear-gradient(to bottom, #ffe4e6 0%, #fff5f6 50%, #f7f2e8 100%);
-        font-family: 'Segoe UI', system-ui, sans-serif;
+    /* 修复按钮太长的问题：限制最大宽度并居中 */
+    .stButton > button {
+        width: 320px !important;
+        margin: 0 auto;
+        display: block;
+        background: linear-gradient(to r, #ff8d94, #fb7185) !important;
+        border-radius: 30px !important;
+        border: none !important;
+        color: white !important;
+        height: 60px !important;
+        font-weight: 900 !important;
+        box-shadow: 0 8px 0 #be123c !important;
+        transition: all 0.2s !important;
     }
-    /* 还原 App.tsx 的粉色发光卡片样式 */
+    .stButton > button:active {
+        transform: translateY(4px) !important;
+        box-shadow: none !important;
+    }
+    /* 保持 App.tsx 的粉色卡片感 */
     .main-card {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 40px;
         border: 6px solid #ffffff;
         box-shadow: 0 15px 0 #fecdd3;
-        padding: 3rem;
-        max-width: 650px;
-        margin: auto;
+        padding: 40px;
         text-align: center;
-        position: relative;
     }
-    /* 还原那个飘浮的巴士图标 */
-    .bus-icon {
-        position: absolute; top: -32px; left: 32px;
-        width: 80px; height: 80px; background: #ff8d94;
-        border-radius: 25px; border: 4px solid white;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        font-size: 30px; animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-10px) rotate(-8deg); } }
-    /* 还原花瓣动画 */
-    .petal { position: fixed; background: #ffb6c1; border-radius: 150% 0 150% 0; opacity: 0.3; pointer-events: none; z-index: 0; animation: fall 10s linear infinite; }
-    @keyframes fall { 0% { top:-10%; transform:translateX(0) rotate(0); } 100% { top:110%; transform:translateX(100px) rotate(360deg); } }
     </style>
-    <div class="petal" style="left:10%; width:15px; height:20px; animation-delay:0s;"></div>
-    <div class="petal" style="left:50%; width:10px; height:15px; animation-delay:2s;"></div>
-    <div class="petal" style="left:80%; width:12px; height:18px; animation-delay:5s;"></div>
 """, unsafe_allow_html=True)
 
-# --- 2. 侧边栏：音乐控制与 Secrets ---
-with st.sidebar:
-    st.title("领航员控制台")
-    # 填入你在 App.tsx 中使用的 Pixabay 音频
-    st.write("🎵 Photograph - Cody Fry")
-    st.audio("https://cdn.pixabay.com/audio/2022/01/21/audio_3130c13c05.mp3")
-    if st.button("🔴 重置时空 (回到起点)"):
-        st.session_state.clear()
-        st.rerun()
-
-# --- 3. 核心逻辑对接 ---
-if "GEMINI_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# --- 2. 核心逻辑：连接 Gemini 生成剧情 ---
+def get_ai_response(prompt):
+    if "GEMINI_API_KEY" not in st.secrets:
+        return None
     
-    # 初始化状态
-    if "scene" not in st.session_state:
-        # 显示封面预览 (匹配 image_4ee415.jpg)
-        st.markdown(f'''
-            <div class="main-card">
-                <div class="bus-icon">🚌</div>
-                <h1 style="color:#d14d56; font-family:serif; font-size:40px;">虎虎北的奇约之旅</h1>
-                <p style="color:#f43f5e; letter-spacing:0.4em; font-size:10px; font-weight:900;">PHOTOGRAPH · CODY FRY SPECIAL</p>
-                <div style="background:#fff5f7; border:2px dashed #fbcfe8; border-radius:35px; padding:30px; margin:30px 0;">
-                    <p style="color:#8b7355; font-size:20px; font-weight:900; line-height:1.6;">
-                    “Yumi，我是你的猫巴士。<br>奇迹已经准备就绪，<br>想让我带你去哪场梦境？”</p>
-                </div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        if st.button("💗 开启 2026 约定之旅", use_container_width=True):
-            st.session_state.scene = "loading"
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    # 注入你在 App.tsx 中定义的初始指令逻辑
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    full_prompt = f"你现在是我的猫巴士。基于以下输入生成动森风格的 JSON 剧情：{prompt}"
+    response = model.generate_content(full_prompt)
+    try:
+        # 强制 AI 返回符合你 types.ts 定义的结构
+        return json.loads(response.text.strip().replace('```json', '').replace('```', ''))
+    except:
+        return {"location": "云端迷路了", "story": "> 虎虎北，时空连接稍有不稳，再点一次？", "mapIndex": 1}
+
+# --- 3. 页面渲染 ---
+if "current_scene" not in st.session_state:
+    # 封面页 (还原 image_4ee415.jpg)
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    st.image("https://path_to_your_cover_image.jpg") # 建议换成你截图里的那张封面图
+    st.markdown(f'''
+        <h1 style="color:#d14d56; font-family:serif;">虎虎北的奇约之旅</h1>
+        <div style="background:#fff5f7; border:2px dashed #fbcfe8; border-radius:35px; padding:20px; margin:20px 0;">
+            <p style="color:#8b7355; font-size:18px; font-weight:900;">
+            “Yumi，我是你的猫巴士。<br>你想去哪里书写我们的第一个篇章？”</p>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    # 解决按钮点击无反应：使用 callback 更新状态
+    if st.button("🚀 踏入 2026 的约定"):
+        with st.spinner("正在勾勒 2026 的风景..."):
+            first_scene = get_ai_response("开启冒险：第一站")
+            st.session_state.current_scene = first_scene
             st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
 else:
-    st.warning("⚠️ 请在 Secrets 处填写 GEMINI_API_KEY")
+    # 剧情页 (还原 App.tsx 的 AdventureMap 进度条)
+    scene = st.session_state.current_scene
+    st.write(f"📍 当前位置：{scene['location']}")
+    st.markdown(scene['story'], unsafe_allow_html=True)
+    
+    if st.button("⬅️ 返回主页"):
+        del st.session_state.current_scene
+        st.rerun()
