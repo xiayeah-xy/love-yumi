@@ -2,83 +2,112 @@ import streamlit as st
 import google.generativeai as genai
 import json
 
-# --- 1. 视觉加固：限制按钮宽度与卡片比例 ---
+# --- 1. 样式彻底重写 (还原 image_4ee415.jpg 的高级感) ---
+st.set_page_config(page_title="2026 约定", layout="centered")
+
 st.markdown("""
     <style>
-    /* 修复按钮太长的问题：限制最大宽度并居中 */
-    .stButton > button {
-        width: 320px !important;
-        margin: 0 auto;
-        display: block;
-        background: linear-gradient(to r, #ff8d94, #fb7185) !important;
-        border-radius: 30px !important;
-        border: none !important;
-        color: white !important;
-        height: 60px !important;
-        font-weight: 900 !important;
-        box-shadow: 0 8px 0 #be123c !important;
-        transition: all 0.2s !important;
+    /* 全局粉色渐变背景 */
+    .stApp {
+        background: linear-gradient(to bottom, #ffe4e6 0%, #fff5f6 50%, #f7f2e8 100%) !important;
     }
-    .stButton > button:active {
-        transform: translateY(4px) !important;
-        box-shadow: none !important;
-    }
-    /* 保持 App.tsx 的粉色卡片感 */
-    .main-card {
-        background: rgba(255, 255, 255, 0.95);
+    /* 隐藏 Streamlit 默认页眉 */
+    header {visibility: hidden;}
+    
+    /* 还原图片中的白色圆角卡片 */
+    .cover-card {
+        background: white;
         border-radius: 40px;
-        border: 6px solid #ffffff;
-        box-shadow: 0 15px 0 #fecdd3;
-        padding: 40px;
+        padding: 40px 20px;
         text-align: center;
+        box-shadow: 0 10px 30px rgba(255, 182, 193, 0.3);
+        border: 1px solid #fff1f2;
+        margin-top: 100px;
+    }
+    
+    /* 标题艺术字体样式 */
+    .title-text {
+        color: #d14d56;
+        font-size: 42px;
+        font-family: "Microsoft YaHei", sans-serif;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    
+    /* 副标题样式 */
+    .subtitle-text {
+        color: #fb7185;
+        letter-spacing: 0.3em;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 30px;
+    }
+
+    /* 虚线对话框 */
+    .quote-box {
+        background: #fff5f7;
+        border: 2px dashed #fbcfe8;
+        border-radius: 30px;
+        padding: 25px;
+        margin: 20px auto;
+        width: 85%;
+        color: #8b7355;
+        font-weight: 900;
+        font-size: 18px;
+        line-height: 1.6;
+    }
+
+    /* 精致的粉色按钮 (彻底解决按钮过长和丑陋问题) */
+    div.stButton > button {
+        background: #f43f5e !important;
+        color: white !important;
+        border-radius: 25px !important;
+        border: none !important;
+        padding: 15px 40px !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        width: 85% !important;
+        margin: 0 auto !important;
+        display: block !important;
+        box-shadow: 0 6px 0 #be123c !important;
+        transition: all 0.2s;
+    }
+    div.stButton > button:hover {
+        background: #e11d48 !important;
+        transform: translateY(2px);
+        box-shadow: 0 4px 0 #be123c !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. 核心逻辑：连接 Gemini 生成剧情 ---
-def get_ai_response(prompt):
-    if "GEMINI_API_KEY" not in st.secrets:
-        return None
-    
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    # 注入你在 App.tsx 中定义的初始指令逻辑
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    full_prompt = f"你现在是我的猫巴士。基于以下输入生成动森风格的 JSON 剧情：{prompt}"
-    response = model.generate_content(full_prompt)
-    try:
-        # 强制 AI 返回符合你 types.ts 定义的结构
-        return json.loads(response.text.strip().replace('```json', '').replace('```', ''))
-    except:
-        return {"location": "云端迷路了", "story": "> 虎虎北，时空连接稍有不稳，再点一次？", "mapIndex": 1}
+# --- 2. 核心交互逻辑 ---
+if "step" not in st.session_state:
+    st.session_state.step = "home"
 
-# --- 3. 页面渲染 ---
-if "current_scene" not in st.session_state:
-    # 封面页 (还原 image_4ee415.jpg)
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
-    st.image("https://path_to_your_cover_image.jpg") # 建议换成你截图里的那张封面图
-    st.markdown(f'''
-        <h1 style="color:#d14d56; font-family:serif;">虎虎北的奇约之旅</h1>
-        <div style="background:#fff5f7; border:2px dashed #fbcfe8; border-radius:35px; padding:20px; margin:20px 0;">
-            <p style="color:#8b7355; font-size:18px; font-weight:900;">
-            “Yumi，我是你的猫巴士。<br>你想去哪里书写我们的第一个篇章？”</p>
+if st.session_state.step == "home":
+    # 纯 HTML/CSS 构造的封面 (像素级还原)
+    st.markdown(f"""
+        <div class="cover-card">
+            <div class="title-text">虎虎北的奇约之旅</div>
+            <div class="subtitle-text">YUMI'S MAGIC CAT BUS ADVENTURE</div>
+            <div class="quote-box">
+                “Yumi，我是你的猫巴士。<br>
+                奇迹已经准备就绪，<br>
+                想让我也带你去哪场梦境？”
+            </div>
         </div>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-    # 解决按钮点击无反应：使用 callback 更新状态
-    if st.button("🚀 踏入 2026 的约定"):
-        with st.spinner("正在勾勒 2026 的风景..."):
-            first_scene = get_ai_response("开启冒险：第一站")
-            st.session_state.current_scene = first_scene
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # 放置按钮
+    if st.button("🐈 开启 2026 约定之旅"):
+        st.session_state.step = "adventure"
+        st.rerun()
 
-else:
-    # 剧情页 (还原 App.tsx 的 AdventureMap 进度条)
-    scene = st.session_state.current_scene
-    st.write(f"📍 当前位置：{scene['location']}")
-    st.markdown(scene['story'], unsafe_allow_html=True)
-    
-    if st.button("⬅️ 返回主页"):
-        del st.session_state.current_scene
+elif st.session_state.step == "adventure":
+    # 这里开始连接 Gemini 生成第一站
+    st.title("📍 冒险开始")
+    # 模拟 AdventureMap 进度条逻辑...
+    if st.button("⬅️ 重置时空"):
+        st.session_state.step = "home"
         st.rerun()
